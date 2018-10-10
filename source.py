@@ -1,14 +1,14 @@
 #!/user/bin/env python
 #!-*-coding:utf-8 -*-
-#!@Time     :2018/10/9
-#!@Author   :Qingslev
-#!@File     :.py
 
-import time
+from datetime import datetime, timedelta
+
+#录入时间
+now=datetime.now()
+day=(now-timedelta(days=1)).strftime('%y%m%d')
 
 #录入文件
-date=time.strftime('%y%m%d',time.localtime(time.time()))
-pathi='/projects/SG/data_unsort/'+str(int(date)-1)+'.md'
+pathi='/projects/SG/data_unsort/'+day+'.txt'
 fi=open(pathi,'r',encoding='utf-8')
 s=fi.read()[1:]#有个不知道什么字符
 fi.close()
@@ -31,9 +31,10 @@ for x in data_list:
 member_tuples=sorted(member_tuples, key=lambda member: member[1],reverse=True)
 
 #写入文件
-patho='/projects/SG/data_sorted/'+date+'.md'
+patho='/projects/SG/data_sorted/'+day+'.txt'
 fo=open(patho, 'w',encoding='utf-8')
+fo.write(day+'\n')
 for x in member_tuples:
-    lines=x[0]+'  '+str(x[1])+'\n'
-    fo.write(lines)
+    fo.write(x[0]+'  '+str(x[1])+'\n')
 fo.close()
+
