@@ -27,10 +27,6 @@ def getDate():
     date=(now-timedelta(days=1)).strftime('%y%m%d')
     return date
 
-def keepOn(s):
-    print(s)
-    answer=input('Go on?')
-
 def getMemberList():
     cursor.execute('SELECT name FROM T_Member')
     member_tuples = cursor.fetchall()  # 这是个包含tuple的list
@@ -47,39 +43,48 @@ def initNameTable(daily_tuples,member_list):
         if x in member_list:
             pass
         else:
-            keepOn('New member:'+x)
-            cursor.execute('CREATE TABLE T_'+x+' (id INTEGER PRIMARY KEY AUTOINCREMENT,date CHAR(6),potato CHAR(2),presence CHAR(1))')
+            input('New member:'+x)
+            try:
+                cursor.execute('CREATE TABLE T_'+x+' (id INTEGER PRIMARY KEY AUTOINCREMENT,date CHAR(6),potato CHAR(2),presence CHAR(1))')
+            except:
+                cursor.execute('DROP TABLE T_'+x)
+                cursor.execute('CREATE TABLE T_'+x+' (id INTEGER PRIMARY KEY AUTOINCREMENT,date CHAR(6),potato CHAR(2),presence CHAR(1))')
             cursor.execute('INSERT INTO T_Member VALUES(NULL,"'+x+'")')
-    conn.commit()
 
 def readDailyInput(date):
-    pathi='/projects/SG/data/'+date+'.md'
+    pathi='/projects/SG/data/'+date+'.txt'
     fi=open(pathi,'r',encoding='utf-8')
-    s=fi.read()#有个不知道什么字符
+    s=fi.read()
     fi.close()
-    list=s.split()
+    list=s.split('\n')
     name=''
-    potato=0
+    potato=''
     count=1
     daily_tuples=[]
     for x in list:
-        if count%2==1:
-            name=x[0:-1]
-            name=re.sub('[\s+\.\!\/_,$%^*(+\"\')]+|[+——()?【】“”:：！，。？、~@#￥%……&*（）]+', '', name)
-        elif count%2==0:
-            potato=int(x)
-            daily_tuples.append((name, potato))
-        count=count+1
-    return sorted(daily_tuples, key=lambda member: member[1],reverse=True)
+        if count%3==1:
+            name=re.sub('[\s+\.\!\-\/_,$%^*(+\"\')]+|[+——()?【】“” :：！，。？、~@#￥%……&*（）]+', '', x)
+        elif count%3==2:
+            if re.match(r'.*[请假]+.*',x):
+                daily_tuples.append((name,0,'1'))
+            else:
+                potato=re.findall(r'\d+',x)
+                if int(potato[0])<2:
+                    daily_tuples.append((name,potato[0],'0'))
+                else:
+                    daily_tuples.append((name,potato[0],'1'))
+        count+=1
+    return sorted(daily_tuples, key=lambda member: int(member[1]),reverse=True)
 
 def writeDailyTable(daily_tuples,date,member_list):
-    # cursor.execute('DROP TABLE T_'+date)
-    cursor.execute('CREATE TABLE T_'+date+' (id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,potato CHAR(2),presence CHAR(1))')#0 False 1 True
+    try:
+        cursor.execute('CREATE TABLE T_' + date + ' (id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,potato CHAR(2),presence CHAR(1))')  # 0 False 1 True
+    except:
+        cursor.execute('DROP TABLE T_'+date)
+        cursor.execute('CREATE TABLE T_' + date + ' (id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,potato CHAR(2),presence CHAR(1))')  # 0 False 1 True
+
     for x in daily_tuples:
-        if x[1]>=2:
-            cursor.execute("INSERT INTO T_"+date+" VALUES (NULL,'"+x[0]+"','"+str(x[1])+"','1')")#表内的数据全部都是字符串，所以不能用SQLine内置的数学方法
-        else:
-            cursor.execute("INSERT INTO T_"+date+" VALUES (NULL,'"+x[0]+"','"+str(x[1])+"','0')")
+        cursor.execute("INSERT INTO T_"+date+" VALUES (NULL,'"+x[0]+"','"+str(x[1])+"','"+x[2]+"')")
 
     member_list_today=[]
     for x in daily_tuples:
@@ -89,14 +94,7 @@ def writeDailyTable(daily_tuples,date,member_list):
         if x in member_list_today:
             pass
         else:
-            reason=input('Does '+x+' has asked for leave or is absent?(L/A)')
-            assert reason=='L'or reason=='A','wrong input!'
-            if reason=='L':
-                cursor.execute("INSERT INTO T_"+date+" VALUES(NULL,'"+x+"','0','1')")
-            elif reason=='A':
-                cursor.execute("INSERT INTO T_"+date+" VALUES(NULL,'"+x+"','0','0')")
-
-    conn.commit()
+            cursor.execute("INSERT INTO T_"+date+" VALUES(NULL,'"+x+"','0','0')")
 
 def writeNameTable(date,member_list):
     cursor.execute('SELECT name,potato,presence FROM T_'+date)
@@ -106,28 +104,33 @@ def writeNameTable(date,member_list):
         for xn in daily_list:#([name potato presence],[]...)
             if x==xn[0]:
                 cursor.execute('INSERT INTO T_'+xn[0]+' VALUES (NULL,"'+date+'","'+xn[1]+'","'+xn[2]+'")')#date potato presence
-    conn.commit()
 
 def getQuitMember(member_list):
-    quit_member=[]
+    quit_member_list=[]
+    weekday_list=[]
+    now = datetime.now()
+    weekday = now.weekday()
+    for i in range(weekday + 1):
+        date = (now - timedelta(days=i)).strftime('%y%m%d')
+        weekday_list.append(date)
     for x in member_list:
-        cursor.execute('SELECT presence FROM T_'+x)
-        presence_tuples=cursor.fetchall()
-        absence=0
-        for i in presence_tuples:
-            if i[0]=='0':
-                absence+=1
-        if absence>=2:
-            keepOn('Quit Member:'+x)
-            quit_member.append(x)
-    return quit_member
+        presence_list = []
+        for y in weekday_list:
+            cursor.execute('SELECT presence FROM T_'+x+' WHERE date="'+y+'"')
+            presence=cursor.fetchall()
+            if ('0',) in presence:
+                presence_list.append(y)
+        if len(presence_list)>=2:
+            input('Quit:'+x)
+            quit_member_list.append((x,presence_list[0],presence_list[1]))
+    return quit_member_list
 
-def writeDailyOutput(date,quit_member):
-    cursor.execute('SELECT name,potato FROM T_' + date)
+def writeDailyOutput(date,quit_member_list):
+    cursor.execute('SELECT name,potato,presence FROM T_' + date)
     daily_list = cursor.fetchall()
 
     wb = xlwt.Workbook(encoding='utf-8')
-    ws = wb.add_sheet(date)
+    ws = wb.add_sheet(date,cell_overwrite_ok=True)
 
     # 设置单元格宽度
     ws.col(0).width = 256 * 8
@@ -220,53 +223,63 @@ def writeDailyOutput(date,quit_member):
 
     for i, x in enumerate(daily_list):
         if i < 3:
-            ws.write(i + 1, 0, i, style2)
+            ws.write(i + 1, 0, i+1, style2)
             ws.write(i + 1, 1, x[0], style3)
             ws.write(i + 1, 2, x[1], style4)
         else:
-            ws.write(i + 1, 0, i, style1)
-            ws.write(i + 1, 1, x[0], style5)
-            ws.write(i + 1, 2, x[1], style6)
-    for n,x in enumerate(quit_member):
-        ws.write(i+n+2,0,'Quit',style1)
-        ws.write(i+n+2,1,x,style5)
-        ws.write(i+n+2,2,'',style6)
+            if x[1]=='0':
+                if x[2]=='0':
+                    ws.write(i + 1, 0, i + 1, style1)
+                    ws.write(i + 1, 1, x[0], style5)
+                    ws.write(i + 1, 2, '缺勤', style6)
+                else:
+                    ws.write(i + 1, 0, i + 1, style1)
+                    ws.write(i + 1, 1, x[0], style5)
+                    ws.write(i + 1, 2, '请假', style6)
+            else:
+                ws.write(i + 1, 0, i+1, style1)
+                ws.write(i + 1, 1, x[0], style5)
+                ws.write(i + 1, 2, x[1], style6)
+    n=0
+    for x in quit_member_list:
+        ws.write(i+2+n+0,0,'Quit',style1)
+        ws.write(i+2+n+0,1,x[0],style5)
+        ws.write(i+2+n+0,2,'',style6)
+        ws.write(i+2+n+1,0,'',style1)
+        ws.write(i+2+n+1,1,x[1],style5)
+        ws.write(i+2+n+1,2,'',style6)
+        ws.write(i+2+n+2,0,'',style1)
+        ws.write(i+2+n+2,1,x[2],style5)
+        ws.write(i+2+n+2,2,'',style6)
+        n+=3
     wb.save('daily\\'+date+'.xls')#?
-
-
-def dropNameTable(name):
-    cursor.execute('DROP TABLE T_'+name)
-    cursor.execute('DELETE FROM T_Member WHERE name="'+name+'"')
 
 if __name__ =='__main__':
     conn = sqlite3.connect('sg.db')
     cursor = conn.cursor()
     date=getDate()
-    keepOn('Good Morning!')
+    input('Good Morning!')
 
     l=readDailyInput(date)
-    print('Successfully Input the Data!')
 
     m=getMemberList()
     initNameTable(l,m)
+    conn.commit()
     m=getMemberList()
-    print('Successfully Init Name Table!')
 
     writeDailyTable(l,date,m)
-    print('Successfully Write Daily Table!')
+    conn.commit()
 
     writeNameTable(date,m)
-    print('Successfully Write Name Table!')
+    conn.commit()
 
-    quit_member=getQuitMember(m)
-    print('Successfully Get Quit Member!')
+    quit_member_list=getQuitMember(m)
 
-    writeDailyOutput(date,quit_member)
-    print('Successfully Output the Daily Table!')
+    writeDailyOutput(date,quit_member_list)
+    print('OK!')
 
-    # for x in quit_member:
-    #     dropNameTable(x)
-    # print('Successfully Drop the Table of the quited members!')
+    # for x in quit_member_list:
+    #     cursor.execute('DELETE FROM T_Member WHERE name="' + x[0] + '"')
 
     cursor.close()
     conn.commit()
