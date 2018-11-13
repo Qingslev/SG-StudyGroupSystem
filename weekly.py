@@ -4,11 +4,11 @@
 """
 　各个表的结构
 T_date
-id name potato presence
+id name tomato presence
 T_Member
 id name
 T_Name
-id date potato presence
+id date tomato presence
 一些常见变量名的含义
 member_list　正在组里的成员组成的表
 date 前一天，即要处理的数据对应的日期
@@ -42,12 +42,12 @@ def sortMemberList(member_list,weekly_list):
     for x in member_list:
         sum=0
         for date in weekly_list:
-            cursor.execute('SELECT potato FROM T_'+x+' WHERE date="'+date+'"')
-            potato=cursor.fetchall()
-            if potato==[]:
+            cursor.execute('SELECT tomato FROM T_'+x+' WHERE date="'+date+'"')
+            tomato=cursor.fetchall()
+            if tomato==[]:
                 pass
             else:
-                sum+=int(potato[0][0])
+                sum+=int(tomato[0][0])
         member_tuples_sorted.append((x,sum))
     return sorted(member_tuples_sorted, key=lambda member: member[1], reverse=True)
 
@@ -172,27 +172,27 @@ def writeWeeklyOutput(member_tuples,weekly_list):
             ws.write(n+1,0,n+1,style2)
             ws.write(n+1,1,x[0],style3)
             for m, date in enumerate(weekly_list):
-                cursor.execute('SELECT potato FROM T_' + x[0] + ' WHERE date="' + date + '"')
-                potato = cursor.fetchall()
-                if potato==[]:
+                cursor.execute('SELECT tomato FROM T_' + x[0] + ' WHERE date="' + date + '"')
+                tomato = cursor.fetchall()
+                if tomato==[]:
                     ws.write(n + 1, m + 2, '', style4)
-                elif int(potato[0][0])>=20:
-                    ws.write(n+1,m+2,potato[0][0],style5)
+                elif int(tomato[0][0])>=20:
+                    ws.write(n+1,m+2,tomato[0][0],style5)
                 else:
-                    ws.write(n + 1, m + 2, potato[0][0], style4)
+                    ws.write(n + 1, m + 2, tomato[0][0], style4)
             ws.write(n+1,m+3,x[1],style3)
         else:
             ws.write(n + 1, 0, n + 1, style1)
             ws.write(n + 1, 1, x[0], style6)
             for m, date in enumerate(weekly_list):
-                cursor.execute('SELECT potato FROM T_' + x[0] + ' WHERE date="' + date + '"')
-                potato = cursor.fetchall()
-                if potato==[]:
+                cursor.execute('SELECT tomato FROM T_' + x[0] + ' WHERE date="' + date + '"')
+                tomato = cursor.fetchall()
+                if tomato==[]:
                     ws.write(n + 1, m + 2, '', style7)
-                elif int(potato[0][0]) >= 20:
-                    ws.write(n + 1, m + 2, potato[0][0], style5)
+                elif int(tomato[0][0]) >= 20:
+                    ws.write(n + 1, m + 2, tomato[0][0], style5)
                 else:
-                    ws.write(n + 1, m + 2, potato[0][0], style7)
+                    ws.write(n + 1, m + 2, tomato[0][0], style7)
             ws.write(n + 1, m + 3, x[1], style6)
 
     wb.save('weekly\\'+weekly_list[-1]+'.xls')
