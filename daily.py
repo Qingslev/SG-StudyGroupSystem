@@ -29,7 +29,7 @@ def getDate():
     return date
 
 def readDailyInput(date):
-    pathi='/volumes/macs/projects/SG/data/'+date+'.txt'
+    pathi='/volumes/macs/projects/SG/data/%s.txt'%date
     # pathi = '/volumes/macs/projects/SG/test.txt'
     fi=open(pathi,'r',encoding='utf-8')
     s=fi.read()
@@ -91,11 +91,11 @@ def writeDailyTable(daily_tuples,date,member_list):
         except:
         	pass
         cursor.execute('CREATE TABLE T_' + date + ' (id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,tomato CHAR(2),sign CHAR(1))')  # 0 False 1 True
-        cursor.execute('SELECT sign_days FROM T_Member WHERE name="'+xn[0]+'"')
-        lines=cursor.fetchall()
-        sign_days=lines[0][0]+1
-        cursor.execute('UPDATE T_Member SET sign_days='+str(sign_days)+' WHERE name="'+xn[0]+'"')
-
+        for x in member_list:
+            cursor.execute('SELECT sign_days FROM T_Member WHERE name="'+x+'"')
+            lines=cursor.fetchall()
+            sign_days=lines[0][0]-1
+            cursor.execute('UPDATE T_Member SET sign_days='+str(sign_days)+' WHERE name="'+x+'"')
     for x in daily_tuples:
         cursor.execute("INSERT INTO T_"+date+" VALUES (NULL,'"+x[0]+"','"+str(x[1])+"','"+x[2]+"')")
 
