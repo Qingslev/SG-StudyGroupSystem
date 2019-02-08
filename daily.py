@@ -29,7 +29,7 @@ def getDate():
     return date
 
 def readDailyInput(date):
-    pathi='/volumes/macs/projects/SG/data/%s.txt'%date
+    pathi='data/%s.txt'%date
     # pathi = '/volumes/macs/projects/SG/test.txt'
     fi=open(pathi,'r',encoding='utf-8')
     s=fi.read()
@@ -50,7 +50,7 @@ def readDailyInput(date):
             else:
                 tomato=re.findall(r'\d+',x)
                 if int(tomato[0])<2:
-                    daily_tuples.append((name,tomato[0],'0'))
+                    daily_tuples.append((name,tomato[0],'1'))
                 else:
                     daily_tuples.append((name,tomato[0],'1'))
         count+=1
@@ -270,7 +270,7 @@ def writeDailyOutput1(date,quit_member_list):
         ws.write(i+2+n+2,1,x[2],style5)
         ws.write(i+2+n+2,2,'',style6)
         n+=3
-    wb.save('/volumes/macs/projects/SG/daily/'+date+'_1.xls')#?
+    wb.save('daily/'+date+'_1.xls')#?
 
 def writeDailyOutput2(date):
     cursor.execute('SELECT name,sign_days FROM T_Member')
@@ -377,10 +377,10 @@ def writeDailyOutput2(date):
             ws.write(i + 1, 0, i+1, style1)
             ws.write(i + 1, 1, x[0], style5)
             ws.write(i + 1, 2, x[1], style6)
-    wb.save('/volumes/macs/projects/SG/daily/'+date+'_2.xls')
+    wb.save('daily/'+date+'_2.xls')
 
 if __name__ =='__main__':
-    conn = sqlite3.connect('sg.db')
+    conn = sqlite3.connect('sg2019.db')
     cursor = conn.cursor()
 
     date=getDate()
